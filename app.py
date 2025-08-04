@@ -135,39 +135,59 @@ def usd_to_inr(usd_amount, exchange_rate=83.50):
     """Convert USD to INR using current exchange rate"""
     return usd_amount * exchange_rate
 
-def create_feature_importance_chart(model):
+def create_feature_importance_chart(model, currency="USD"):
     """Create feature importance visualization"""
     features = ['Square Feet', 'Bedrooms', 'Bathrooms']
     coefficients = model.coef_
     
+    if currency == "INR":
+        coefficients_display = [usd_to_inr(coef) for coef in coefficients]
+        text_values = [f'₹{coef:,.0f}' for coef in coefficients_display]
+        y_title = "Coefficient Value (₹)"
+    else:
+        coefficients_display = coefficients
+        text_values = [f'${coef:,.0f}' for coef in coefficients_display]
+        y_title = "Coefficient Value ($)"
+    
     fig = go.Figure(data=[
         go.Bar(
             x=features,
-            y=coefficients,
+            y=coefficients_display,
             marker_color=['#FF6B6B', '#4ECDC4', '#45B7D1'],
-            text=[f'${coef:,.0f}' for coef in coefficients],
+            text=text_values,
             textposition='auto',
         )
     ])
     
     fig.update_layout(
-        title="Feature Importance (Coefficients)",
+        title=f"Feature Importance (Coefficients) - {currency}",
         xaxis_title="Features",
-        yaxis_title="Coefficient Value ($)",
+        yaxis_title=y_title,
         template="plotly_white",
         height=400
     )
     
     return fig
 
-def create_prediction_vs_actual_chart(y_test, y_pred_test):
+def create_prediction_vs_actual_chart(y_test, y_pred_test, currency="USD"):
     """Create prediction vs actual price chart"""
     fig = go.Figure()
     
+    if currency == "INR":
+        y_test_display = [usd_to_inr(price) for price in y_test]
+        y_pred_display = [usd_to_inr(price) for price in y_pred_test]
+        x_title = "Actual Price (₹)"
+        y_title = "Predicted Price (₹)"
+    else:
+        y_test_display = y_test
+        y_pred_display = y_pred_test
+        x_title = "Actual Price ($)"
+        y_title = "Predicted Price ($)"
+    
     # Add scatter plot
     fig.add_trace(go.Scatter(
-        x=y_test,
-        y=y_pred_test,
+        x=y_test_display,
+        y=y_pred_display,
         mode='markers',
         marker=dict(
             color='rgba(67, 147, 195, 0.7)',
@@ -178,8 +198,8 @@ def create_prediction_vs_actual_chart(y_test, y_pred_test):
     ))
     
     # Add perfect prediction line
-    min_val = min(y_test.min(), y_pred_test.min())
-    max_val = max(y_test.max(), y_pred_test.max())
+    min_val = min(min(y_test_display), min(y_pred_display))
+    max_val = max(max(y_test_display), max(y_pred_display))
     
     fig.add_trace(go.Scatter(
         x=[min_val, max_val],
@@ -190,27 +210,35 @@ def create_prediction_vs_actual_chart(y_test, y_pred_test):
     ))
     
     fig.update_layout(
-        title="Predicted vs Actual Prices",
-        xaxis_title="Actual Price ($)",
-        yaxis_title="Predicted Price ($)",
+        title=f"Predicted vs Actual Prices - {currency}",
+        xaxis_title=x_title,
+        yaxis_title=y_title,
         template="plotly_white",
         height=400
     )
     
     return fig
 
-def create_price_distribution_chart(df):
+def create_price_distribution_chart(df, currency="USD"):
     """Create price distribution chart"""
+    if currency == "INR":
+        price_data = [usd_to_inr(price) for price in df['price']]
+        x_title = "Price (₹)"
+        title = "House Price Distribution - INR"
+    else:
+        price_data = df['price']
+        x_title = "Price ($)"
+        title = "House Price Distribution - USD"
+    
     fig = px.histogram(
-        df, 
-        x='price', 
+        x=price_data, 
         nbins=50,
-        title="House Price Distribution",
+        title=title,
         color_discrete_sequence=['#8B5CF6']
     )
     
     fig.update_layout(
-        xaxis_title="Price ($)",
+        xaxis_title=x_title,
         yaxis_title="Frequency",
         template="plotly_white",
         height=400
@@ -331,16 +359,42 @@ def main():
             bedroom_contribution = model.coef_[1] * bedrooms
             bathroom_contribution = model.coef_[2] * bathrooms
             
-            breakdown_df = pd.DataFrame({
-                'Component': ['Base Price', 'Square Feet', 'Bedrooms', 'Bathrooms', 'Total'],
-                'Value': [base_price, sqft_contribution, bedroom_contribution, bathroom_contribution, predicted_price],
-                'Description': [
+            # Create breakdown based on currency selection
+            if currency == "INR (₹)":
+                breakdown_values = [
+                    usd_to_inr(base_price),
+                    usd_to_inr(sqft_contribution),
+                    usd_to_inr(bedroom_contribution),
+                    usd_to_inr(bathroom_contribution),
+                    usd_to_inr(predicted_price)
+                ]
+                breakdown_descriptions = [
+                    'Starting price',
+                    f'{square_feet:,} sq ft × ₹{usd_to_inr(model.coef_[0]):.0f}',
+                    f'{bedrooms} × ₹{usd_to_inr(model.coef_[1]):,.0f}',
+                    f'{bathrooms} × ₹{usd_to_inr(model.coef_[2]):,.0f}',
+                    'Final predicted price'
+                ]
+                text_values = [f'₹{val:,.0f}' for val in breakdown_values]
+                y_title = "Price Contribution (₹)"
+                chart_title = "Price Component Breakdown (INR)"
+            else:
+                breakdown_values = [base_price, sqft_contribution, bedroom_contribution, bathroom_contribution, predicted_price]
+                breakdown_descriptions = [
                     'Starting price',
                     f'{square_feet:,} sq ft × ${model.coef_[0]:.2f}',
                     f'{bedrooms} × ${model.coef_[1]:,.0f}',
                     f'{bathrooms} × ${model.coef_[2]:,.0f}',
                     'Final predicted price'
                 ]
+                text_values = [f'${val:,.0f}' for val in breakdown_values]
+                y_title = "Price Contribution ($)"
+                chart_title = "Price Component Breakdown (USD)"
+            
+            breakdown_df = pd.DataFrame({
+                'Component': ['Base Price', 'Square Feet', 'Bedrooms', 'Bathrooms', 'Total'],
+                'Value': breakdown_values,
+                'Description': breakdown_descriptions
             })
             
             # Color coding for the breakdown
@@ -351,15 +405,15 @@ def main():
                     x=breakdown_df['Component'],
                     y=breakdown_df['Value'],
                     marker_color=colors,
-                    text=[f'${val:,.0f}' for val in breakdown_df['Value']],
+                    text=text_values,
                     textposition='auto'
                 )
             ])
             
             fig_breakdown.update_layout(
-                title="Price Component Breakdown",
+                title=chart_title,
                 xaxis_title="Components",
-                yaxis_title="Price Contribution ($)",
+                yaxis_title=y_title,
                 template="plotly_white",
                 height=400
             )
@@ -387,10 +441,20 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # Display RMSE based on currency selection
+        if currency == "INR (₹)":
+            rmse_display = usd_to_inr(metrics['test_rmse'])
+            rmse_text = f"₹{rmse_display:,.0f}"
+        elif currency == "USD ($)":
+            rmse_text = f"${metrics['test_rmse']:,.0f}"
+        else:  # Both
+            rmse_inr = usd_to_inr(metrics['test_rmse'])
+            rmse_text = f"${metrics['test_rmse']:,.0f} / ₹{rmse_inr:,.0f}"
+        
         st.markdown(f"""
         <div class="metric-box">
             <h4>RMSE</h4>
-            <h2>${metrics['test_rmse']:,.0f}</h2>
+            <h2>{rmse_text}</h2>
             <p>Prediction Error</p>
         </div>
         """, unsafe_allow_html=True)
@@ -408,36 +472,83 @@ def main():
     
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Feature Importance", "📊 Model Accuracy", "💹 Price Distribution", "🔍 Data Insights"])
     
+    # Determine currency for charts
+    chart_currency = "INR" if currency == "INR (₹)" else "USD"
+    
     with tab1:
-        st.plotly_chart(create_feature_importance_chart(model), use_container_width=True)
+        st.plotly_chart(create_feature_importance_chart(model, chart_currency), use_container_width=True)
         
-        st.markdown("""
+        # Update insights based on currency
+        if currency == "INR (₹)":
+            sqft_value = usd_to_inr(model.coef_[0])
+            currency_symbol = "₹"
+        else:
+            sqft_value = model.coef_[0]
+            currency_symbol = "$"
+            
+        st.markdown(f"""
         **Key Insights:**
         - **Square Feet** has the strongest impact on property value
-        - Each additional square foot adds approximately **$93** to the property value
+        - Each additional square foot adds approximately **{currency_symbol}{sqft_value:.0f}** to the property value
         - Bedrooms and bathrooms provide additional value but with diminishing returns
         """)
     
     with tab2:
-        st.plotly_chart(create_prediction_vs_actual_chart(metrics['y_test'], metrics['y_pred_test']), use_container_width=True)
+        st.plotly_chart(create_prediction_vs_actual_chart(metrics['y_test'], metrics['y_pred_test'], chart_currency), use_container_width=True)
         
+        # Update performance text based on currency
+        if currency == "INR (₹)":
+            rmse_text = f"₹{usd_to_inr(metrics['test_rmse']):,.0f}"
+        elif currency == "USD ($)":
+            rmse_text = f"${metrics['test_rmse']:,.0f}"
+        else:  # Both
+            rmse_inr = usd_to_inr(metrics['test_rmse'])
+            rmse_text = f"${metrics['test_rmse']:,.0f} / ₹{rmse_inr:,.0f}"
+            
         st.markdown(f"""
         **Model Performance:**
         - **R² Score: {metrics['test_r2']:.3f}** - The model explains {metrics['test_r2']*100:.1f}% of property value variation
-        - **RMSE: ${metrics['test_rmse']:,.0f}** - Average prediction error
+        - **RMSE: {rmse_text}** - Average prediction error
         - Points closer to the red line indicate more accurate predictions
         """)
     
     with tab3:
-        st.plotly_chart(create_price_distribution_chart(df), use_container_width=True)
+        st.plotly_chart(create_price_distribution_chart(df, chart_currency), use_container_width=True)
         
+        # Update price statistics based on currency
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Average Price", f"${df['price'].mean():,.0f}")
-        with col2:
-            st.metric("Median Price", f"${df['price'].median():,.0f}")
-        with col3:
-            st.metric("Price Range", f"${df['price'].max() - df['price'].min():,.0f}")
+        
+        if currency == "INR (₹)":
+            with col1:
+                avg_price_inr = usd_to_inr(df['price'].mean())
+                st.metric("Average Price", f"₹{avg_price_inr:,.0f}")
+            with col2:
+                median_price_inr = usd_to_inr(df['price'].median())
+                st.metric("Median Price", f"₹{median_price_inr:,.0f}")
+            with col3:
+                price_range_inr = usd_to_inr(df['price'].max() - df['price'].min())
+                st.metric("Price Range", f"₹{price_range_inr:,.0f}")
+        elif currency == "USD ($)":
+            with col1:
+                st.metric("Average Price", f"${df['price'].mean():,.0f}")
+            with col2:
+                st.metric("Median Price", f"${df['price'].median():,.0f}")
+            with col3:
+                st.metric("Price Range", f"${df['price'].max() - df['price'].min():,.0f}")
+        else:  # Both currencies
+            with col1:
+                avg_price_inr = usd_to_inr(df['price'].mean())
+                st.metric("Average Price (USD)", f"${df['price'].mean():,.0f}")
+                st.metric("Average Price (INR)", f"₹{avg_price_inr:,.0f}")
+            with col2:
+                median_price_inr = usd_to_inr(df['price'].median())
+                st.metric("Median Price (USD)", f"${df['price'].median():,.0f}")
+                st.metric("Median Price (INR)", f"₹{median_price_inr:,.0f}")
+            with col3:
+                price_range = df['price'].max() - df['price'].min()
+                price_range_inr = usd_to_inr(price_range)
+                st.metric("Price Range (USD)", f"${price_range:,.0f}")
+                st.metric("Price Range (INR)", f"₹{price_range_inr:,.0f}")
     
     with tab4:
         # Correlation matrix
