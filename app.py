@@ -378,7 +378,28 @@ def main():
                 text_values = [f'₹{val:,.0f}' for val in breakdown_values]
                 y_title = "Price Contribution (₹)"
                 chart_title = "Price Component Breakdown (INR)"
-            else:
+            elif currency == "Both":
+                # Show INR values but with dual currency text
+                breakdown_values = [
+                    usd_to_inr(base_price),
+                    usd_to_inr(sqft_contribution),
+                    usd_to_inr(bedroom_contribution),
+                    usd_to_inr(bathroom_contribution),
+                    usd_to_inr(predicted_price)
+                ]
+                breakdown_descriptions = [
+                    'Starting price',
+                    f'{square_feet:,} sq ft × ${model.coef_[0]:.0f} / ₹{usd_to_inr(model.coef_[0]):.0f}',
+                    f'{bedrooms} × ${model.coef_[1]:,.0f} / ₹{usd_to_inr(model.coef_[1]):,.0f}',
+                    f'{bathrooms} × ${model.coef_[2]:,.0f} / ₹{usd_to_inr(model.coef_[2]):,.0f}',
+                    'Final predicted price'
+                ]
+                # Show both currencies in text
+                usd_values = [base_price, sqft_contribution, bedroom_contribution, bathroom_contribution, predicted_price]
+                text_values = [f'${usd_val:,.0f}\n₹{inr_val:,.0f}' for usd_val, inr_val in zip(usd_values, breakdown_values)]
+                y_title = "Price Contribution (₹)"
+                chart_title = "Price Component Breakdown (USD/INR)"
+            else:  # USD only
                 breakdown_values = [base_price, sqft_contribution, bedroom_contribution, bathroom_contribution, predicted_price]
                 breakdown_descriptions = [
                     'Starting price',
@@ -472,24 +493,33 @@ def main():
     
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Feature Importance", "📊 Model Accuracy", "💹 Price Distribution", "🔍 Data Insights"])
     
-    # Determine currency for charts
-    chart_currency = "INR" if currency == "INR (₹)" else "USD"
+    # Determine currency for charts - if "Both" is selected, show INR charts but with dual labels
+    if currency == "INR (₹)":
+        chart_currency = "INR"
+    elif currency == "USD ($)":
+        chart_currency = "USD"
+    else:  # Both - show INR charts since they're larger numbers and more impressive
+        chart_currency = "INR"
     
     with tab1:
         st.plotly_chart(create_feature_importance_chart(model, chart_currency), use_container_width=True)
         
         # Update insights based on currency
-        if currency == "INR (₹)":
-            sqft_value = usd_to_inr(model.coef_[0])
-            currency_symbol = "₹"
-        else:
+        if currency == "INR (₹)" or currency == "Both":
+            sqft_value_usd = model.coef_[0]
+            sqft_value_inr = usd_to_inr(sqft_value_usd)
+            if currency == "Both":
+                value_text = f"**${sqft_value_usd:.0f} USD / ₹{sqft_value_inr:.0f} INR**"
+            else:
+                value_text = f"**₹{sqft_value_inr:.0f}**"
+        else:  # USD only
             sqft_value = model.coef_[0]
-            currency_symbol = "$"
+            value_text = f"**${sqft_value:.0f}**"
             
         st.markdown(f"""
         **Key Insights:**
         - **Square Feet** has the strongest impact on property value
-        - Each additional square foot adds approximately **{currency_symbol}{sqft_value:.0f}** to the property value
+        - Each additional square foot adds approximately {value_text} to the property value
         - Bedrooms and bathrooms provide additional value but with diminishing returns
         """)
     
