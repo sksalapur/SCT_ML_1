@@ -427,7 +427,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #666; margin-top: 2rem;">
-        <p>� PropertyPredict Pro | Built with ❤️ using AI & Machine Learning</p>
+        <p>🏡 PropertyPredict Pro | Built with ❤️ using AI & Machine Learning</p>
         <p>Data Source: Kaggle House Prices Dataset | Model: Linear Regression</p>
     </div>
     """, unsafe_allow_html=True)
