@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.model_selection import train_test_split
@@ -67,30 +65,12 @@ st.markdown("""
 @st.cache_data
 def load_and_prepare_data():
     """Load and prepare the Kaggle house price data"""
-    try:
-        # Load the dataset
-        df = pd.read_csv('train.csv')
-        
-        # Select required columns
-        required_columns = ['GrLivArea', 'BedroomAbvGr', 'FullBath', 'HalfBath', 'SalePrice']
-        df_clean = df[required_columns].copy()
-        
-        # Handle missing values
-        df_clean = df_clean.dropna()
-        
-        # Create feature mapping
-        df_clean['square_feet'] = df_clean['GrLivArea']
-        df_clean['bedrooms'] = df_clean['BedroomAbvGr']
-        df_clean['bathrooms'] = df_clean['FullBath'] + df_clean['HalfBath'] * 0.5
-        df_clean['price'] = df_clean['SalePrice']
-        
-        # Select final features
-        features = ['square_feet', 'bedrooms', 'bathrooms', 'price']
-        return df_clean[features]
-    
-    except FileNotFoundError:
-        st.error("❌ train.csv file not found! Please upload the Kaggle dataset.")
-        return None
+    df = pd.read_csv('train.csv')
+    df['square_feet'] = df['GrLivArea']
+    df['bedrooms'] = df['BedroomAbvGr']
+    df['bathrooms'] = df['FullBath'] + df['HalfBath'] * 0.5
+    df['price'] = df['SalePrice']
+    return df[['square_feet', 'bedrooms', 'bathrooms', 'price']].dropna()
 
 @st.cache_data
 def train_model(df):
