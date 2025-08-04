@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # Set page config
 st.set_page_config(
     page_title="PropertyPredict Pro",
-    page_icon="�",
+    page_icon="🏡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -131,6 +131,10 @@ def predict_price(model, square_feet, bedrooms, bathrooms):
     prediction = model.predict(features)[0]
     return prediction
 
+def usd_to_inr(usd_amount, exchange_rate=83.50):
+    """Convert USD to INR using current exchange rate"""
+    return usd_amount * exchange_rate
+
 def create_feature_importance_chart(model):
     """Create feature importance visualization"""
     features = ['Square Feet', 'Bedrooms', 'Bathrooms']
@@ -216,7 +220,7 @@ def create_price_distribution_chart(df):
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">� PropertyPredict Pro</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🏡 PropertyPredict Pro</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered Real Estate Valuation • Instant Property Insights</p>', unsafe_allow_html=True)
     
     # Load data
@@ -230,6 +234,14 @@ def main():
     
     # Sidebar for inputs
     st.sidebar.markdown('<h2 class="sub-header">🎛️ Property Details</h2>', unsafe_allow_html=True)
+    
+    # Currency selection
+    currency = st.sidebar.radio(
+        "💱 Display Currency",
+        options=["USD ($)", "INR (₹)", "Both"],
+        index=2,
+        help="Choose your preferred currency display"
+    )
     
     # Input widgets
     square_feet = st.sidebar.number_input(
@@ -280,14 +292,36 @@ def main():
         # Prediction result
         if hasattr(st.session_state, 'prediction_made') and st.session_state.prediction_made:
             predicted_price = st.session_state.predicted_price
+            predicted_price_inr = usd_to_inr(predicted_price)
             
-            st.markdown(f"""
-            <div class="prediction-box">
-                <h2>🎯 Property Valuation</h2>
-                <h1>${predicted_price:,.0f}</h1>
-                <p>For {square_feet:,} sq ft • {bedrooms} bed • {bathrooms} bath</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Display based on currency selection
+            if currency == "USD ($)":
+                st.markdown(f"""
+                <div class="prediction-box">
+                    <h2>🎯 Property Valuation</h2>
+                    <h1>${predicted_price:,.0f} USD</h1>
+                    <p>For {square_feet:,} sq ft • {bedrooms} bed • {bathrooms} bath</p>
+                </div>
+                """, unsafe_allow_html=True)
+            elif currency == "INR (₹)":
+                st.markdown(f"""
+                <div class="prediction-box">
+                    <h2>🎯 Property Valuation</h2>
+                    <h1>₹{predicted_price_inr:,.0f} INR</h1>
+                    <p>For {square_feet:,} sq ft • {bedrooms} bed • {bathrooms} bath</p>
+                    <small>Exchange Rate: 1 USD = 83.50 INR</small>
+                </div>
+                """, unsafe_allow_html=True)
+            else:  # Both currencies
+                st.markdown(f"""
+                <div class="prediction-box">
+                    <h2>🎯 Property Valuation</h2>
+                    <h1>${predicted_price:,.0f} USD</h1>
+                    <h2>₹{predicted_price_inr:,.0f} INR</h2>
+                    <p>For {square_feet:,} sq ft • {bedrooms} bed • {bathrooms} bath</p>
+                    <small>Exchange Rate: 1 USD = 83.50 INR</small>
+                </div>
+                """, unsafe_allow_html=True)
             
             # Price breakdown
             st.markdown('<h3 class="sub-header">💰 Price Breakdown</h3>', unsafe_allow_html=True)
