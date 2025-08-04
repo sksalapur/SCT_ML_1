@@ -13,8 +13,8 @@ warnings.filterwarnings('ignore')
 
 # Set page config
 st.set_page_config(
-    page_title="House Price Predictor",
-    page_icon="🏠",
+    page_title="PropertyPredict Pro",
+    page_icon="�",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -216,8 +216,8 @@ def create_price_distribution_chart(df):
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🏠 Smart House Price Predictor</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Powered by Machine Learning • Built with Streamlit</p>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">� PropertyPredict Pro</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered Real Estate Valuation • Instant Property Insights</p>', unsafe_allow_html=True)
     
     # Load data
     df = load_and_prepare_data()
@@ -229,10 +229,10 @@ def main():
     model, metrics = train_model(df)
     
     # Sidebar for inputs
-    st.sidebar.markdown('<h2 class="sub-header">🎛️ House Features</h2>', unsafe_allow_html=True)
+    st.sidebar.markdown('<h2 class="sub-header">🎛️ Property Details</h2>', unsafe_allow_html=True)
     
     # Input widgets
-    square_feet = st.sidebar.slider(
+    square_feet = st.sidebar.number_input(
         "🏡 Square Feet",
         min_value=int(df['square_feet'].min()),
         max_value=int(df['square_feet'].max()),
@@ -248,15 +248,28 @@ def main():
         help="Number of bedrooms above basement level"
     )
     
+    # Convert bathrooms to whole numbers only
+    bathroom_options = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
     bathrooms = st.sidebar.selectbox(
         "🚿 Number of Bathrooms",
-        options=sorted(df['bathrooms'].unique()),
+        options=bathroom_options,
         index=3,
-        help="Total bathrooms (full + half)"
+        help="Total bathrooms (0.5 = half bath, 1.0 = full bath, etc.)"
     )
     
+    # Bathroom explanation
+    with st.sidebar.expander("ℹ️ Bathroom Count Explanation"):
+        st.markdown("""
+        **How bathroom counting works:**
+        - **0.5** = Half bathroom (toilet + sink only)
+        - **1.0** = Full bathroom (toilet + sink + shower/tub)
+        - **1.5** = 1 full + 1 half bathroom
+        - **2.0** = 2 full bathrooms
+        - And so on...
+        """)
+    
     # Predict button
-    if st.sidebar.button("🔮 Predict Price", type="primary"):
+    if st.sidebar.button("🔮 Get Property Valuation", type="primary"):
         st.session_state.prediction_made = True
         st.session_state.predicted_price = predict_price(model, square_feet, bedrooms, bathrooms)
     
@@ -270,7 +283,7 @@ def main():
             
             st.markdown(f"""
             <div class="prediction-box">
-                <h2>🎯 Predicted House Price</h2>
+                <h2>🎯 Property Valuation</h2>
                 <h1>${predicted_price:,.0f}</h1>
                 <p>For {square_feet:,} sq ft • {bedrooms} bed • {bathrooms} bath</p>
             </div>
@@ -322,9 +335,9 @@ def main():
         else:
             st.markdown("""
             <div class="info-box">
-                <h3>👋 Welcome to the House Price Predictor!</h3>
-                <p>Adjust the house features in the sidebar and click "Predict Price" to see the estimated value.</p>
-                <p>Our AI model analyzes thousands of real house sales to give you accurate predictions!</p>
+                <h3>👋 Welcome to PropertyPredict Pro!</h3>
+                <p>Enter your property details in the sidebar and click "Get Property Valuation" to see the estimated value.</p>
+                <p>Our AI model analyzes thousands of real estate transactions to provide accurate property valuations!</p>
             </div>
             """, unsafe_allow_html=True)
     
@@ -366,8 +379,8 @@ def main():
         
         st.markdown("""
         **Key Insights:**
-        - **Square Feet** has the strongest impact on price
-        - Each additional square foot adds approximately **$93** to the house value
+        - **Square Feet** has the strongest impact on property value
+        - Each additional square foot adds approximately **$93** to the property value
         - Bedrooms and bathrooms provide additional value but with diminishing returns
         """)
     
@@ -376,7 +389,7 @@ def main():
         
         st.markdown(f"""
         **Model Performance:**
-        - **R² Score: {metrics['test_r2']:.3f}** - The model explains {metrics['test_r2']*100:.1f}% of price variation
+        - **R² Score: {metrics['test_r2']:.3f}** - The model explains {metrics['test_r2']*100:.1f}% of property value variation
         - **RMSE: ${metrics['test_rmse']:,.0f}** - Average prediction error
         - Points closer to the red line indicate more accurate predictions
         """)
@@ -414,7 +427,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #666; margin-top: 2rem;">
-        <p>🏠 Smart House Price Predictor | Built with ❤️ using Streamlit & Machine Learning</p>
+        <p>� PropertyPredict Pro | Built with ❤️ using AI & Machine Learning</p>
         <p>Data Source: Kaggle House Prices Dataset | Model: Linear Regression</p>
     </div>
     """, unsafe_allow_html=True)
