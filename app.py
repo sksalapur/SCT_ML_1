@@ -144,10 +144,18 @@ def create_feature_importance_chart(model, currency="USD"):
         coefficients_display = [usd_to_inr(coef) for coef in coefficients]
         text_values = [f'₹{coef:,.0f}' for coef in coefficients_display]
         y_title = "Coefficient Value (₹)"
+        title = "Feature Importance (Coefficients) - INR"
+    elif currency == "Both":
+        coefficients_display = [usd_to_inr(coef) for coef in coefficients]  # Use INR for chart scale
+        # Show both currencies in text
+        text_values = [f'${coef:,.0f}<br>₹{usd_to_inr(coef):,.0f}' for coef in coefficients]
+        y_title = "Coefficient Value (₹)"
+        title = "Feature Importance (Coefficients) - USD/INR"
     else:
         coefficients_display = coefficients
         text_values = [f'${coef:,.0f}' for coef in coefficients_display]
         y_title = "Coefficient Value ($)"
+        title = "Feature Importance (Coefficients) - USD"
     
     fig = go.Figure(data=[
         go.Bar(
@@ -160,7 +168,7 @@ def create_feature_importance_chart(model, currency="USD"):
     ])
     
     fig.update_layout(
-        title=f"Feature Importance (Coefficients) - {currency}",
+        title=title,
         xaxis_title="Features",
         yaxis_title=y_title,
         template="plotly_white",
@@ -178,11 +186,20 @@ def create_prediction_vs_actual_chart(y_test, y_pred_test, currency="USD"):
         y_pred_display = [usd_to_inr(price) for price in y_pred_test]
         x_title = "Actual Price (₹)"
         y_title = "Predicted Price (₹)"
+        title = "Predicted vs Actual Prices - INR"
+    elif currency == "Both":
+        # Use INR for the chart but show dual currency in title
+        y_test_display = [usd_to_inr(price) for price in y_test]
+        y_pred_display = [usd_to_inr(price) for price in y_pred_test]
+        x_title = "Actual Price (₹ - Scale in INR for visibility)"
+        y_title = "Predicted Price (₹ - Scale in INR for visibility)"
+        title = "Predicted vs Actual Prices - USD/INR (Displayed in INR Scale)"
     else:
         y_test_display = y_test
         y_pred_display = y_pred_test
         x_title = "Actual Price ($)"
         y_title = "Predicted Price ($)"
+        title = "Predicted vs Actual Prices - USD"
     
     # Add scatter plot
     fig.add_trace(go.Scatter(
@@ -210,7 +227,7 @@ def create_prediction_vs_actual_chart(y_test, y_pred_test, currency="USD"):
     ))
     
     fig.update_layout(
-        title=f"Predicted vs Actual Prices - {currency}",
+        title=title,
         xaxis_title=x_title,
         yaxis_title=y_title,
         template="plotly_white",
@@ -225,6 +242,11 @@ def create_price_distribution_chart(df, currency="USD"):
         price_data = [usd_to_inr(price) for price in df['price']]
         x_title = "Price (₹)"
         title = "House Price Distribution - INR"
+    elif currency == "Both":
+        # Use INR for chart but indicate dual currency in title
+        price_data = [usd_to_inr(price) for price in df['price']]
+        x_title = "Price (₹ - Scale in INR for visibility)"
+        title = "House Price Distribution - USD/INR (Displayed in INR Scale)"
     else:
         price_data = df['price']
         x_title = "Price ($)"
@@ -493,13 +515,13 @@ def main():
     
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Feature Importance", "📊 Model Accuracy", "💹 Price Distribution", "🔍 Data Insights"])
     
-    # Determine currency for charts - if "Both" is selected, show INR charts but with dual labels
+    # Pass the exact currency selection to charts
     if currency == "INR (₹)":
         chart_currency = "INR"
     elif currency == "USD ($)":
         chart_currency = "USD"
-    else:  # Both - show INR charts since they're larger numbers and more impressive
-        chart_currency = "INR"
+    else:  # Both
+        chart_currency = "Both"
     
     with tab1:
         st.plotly_chart(create_feature_importance_chart(model, chart_currency), use_container_width=True)
